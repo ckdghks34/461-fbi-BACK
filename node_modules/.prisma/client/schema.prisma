@@ -14,6 +14,7 @@ model BOOK {
   book_num                    Int            @default(autoincrement()) @id
   book_picture                String?
   book_publisher              String?
+  book_side_pic               String?
   book_year                   String?
   CATEGORY                    CATEGORY       @relation(fields: [book_category], references: [category_num])
   LIB_OWN_BOOK                LIB_OWN_BOOK[]

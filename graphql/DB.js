@@ -2,9 +2,18 @@
 import mariadb from "mariadb";
 import {dbConfig} from "../config/db_config";
 import {PrismaClient} from "@prisma/client";
+import { typeDefs } from "graphql-scalars";
 
 // MariaDB connect pool
 // http://github.com/sidorares/node-mysql2
+
+function uniqByKeepFirst(a, key) {
+    let seen = new Set();
+    return a.filter(item => {
+        let k = key(item);
+        return seen.has(k) ? false : seen.add(k);
+    });
+}
 const pool = mariadb.createPool({
         host : dbConfig.host,
         user : dbConfig.user,
@@ -16,10 +25,12 @@ const pool = mariadb.createPool({
         queueLimit: 0,
 });
 
+
 const prisma = new PrismaClient();
 
-//회원가입
+//회원가입(1)
 export const joinUser = async(user_ID,user_password,user_name,user_phone,user_age,user_gender) =>{
+    console.log("Call joinUser");
     const newuser = await prisma.uSER.create({
         data:{
             user_ID: user_ID,
@@ -31,36 +42,58 @@ export const joinUser = async(user_ID,user_password,user_name,user_phone,user_ag
         }
     });
 
+    console.log("End joinUser");
+
     return newuser;
 }
 
-//로그인
+//로그인(1)
 export const loginUser = async(id,pw) =>{
+    console.log("Call loginUser");
     const loginuser = await prisma.uSER.findMany(
         {
             where: {user_ID: String(id), user_password:String(pw)}
         }
     );
+
+    console.log("End loginUser");
+
     return loginuser;
 }
 
-//비밀번호찾기
+//ID기준 회원정보 찾기(1)
+export const getUserbyID =async(id) =>{
+    console.log("Call getUserbyID");
+    const getUser = await prisma.uSER.findOne({
+        where:{user_ID:String(id)}
+    });
 
+    console.log("End getUserbyID");
 
-//ID기준 회원정보 찾기
+    return getUser;
+}
 
+//회원 비밀번호 변경(1)
+export const updateUserPW = async(id,pw) => {
+    console.log("Call updateUserPW");
 
-//회원 비밀번호 변경
+    const UserPW = await prisma.uSER.update({
+        where:{user_ID:id},
+        data:{user_password:pw}
+    })
 
+    console.log("End updateUserPW");
+
+    return UserPW;
+}
 //
 
 
 
-
-
-
-//회원 마음속의 저장!
+//회원 마음속의 저장!(1)
 export const getMindbook = async(user_id) =>{
+    console.log("Call getMindbook");
+
     const selected_user = await prisma.uSER.findOne(
         {
             where: {user_ID: String(user_id)}
@@ -71,57 +104,100 @@ export const getMindbook = async(user_id) =>{
             where: {book_num: selected_user.user_mindbook}
         }
     );
+
+    console.log("End getMindbook");
+
     return mindbook;
 };
 
-//회원 마음속의 저장 업데이트
-export const updateMindbook = async(user_id,book_id) =>{
+//회원 마음속의 저장 업데이트(1)
+export const updateMindbook = async(user_id,book_num) =>{
+    console.log("Call updateMindbook");
     const newmindbook = await prisma.uSER.update({
         where:{user_ID:String(user_id)},
-        data:{ user_mindbook : book_id}
+        data:{ 
+            BOOK:{connect:{book_num : book_num}}}
     })
+
+    console.log("End updateMindbook");
+
+    return newmindbook;
 }
 
-//책 번호로 책정보 찾기
-export const getByBookNum = async(book_id) => {
-    const getbook = await prisma.bOOK.findOne({
-        where : {user_ID : String(book_id)}
+//책 번호로 책정보 찾기(1)
+export const getByBookNum = async(book_num) => {
+    console.log("Call getByBookNum");
+
+    const getbook = await prisma.bOOK.findMany({
+        where : {book_num : String(book_num)}
     })
+
+    console.log("End getByBookNum");
 
     return getbook;
 }
 
-// Best5 도서 목록
+// Best5 도서 목록_(1)
 export const mostSearchbook = async() =>{
+    console.log("Call mostSearchbook");
+    
     const logcount = await pool.query("select book_num, count(book_num) from fbi.LOG group by book_num order by count(book_num) DESC Limit 0,5");
-    console.log(logcount);
-    return logcount;
+    
+    var bestBook = []
+
+    for(var i = 0; i < 5; ++i){
+        bestBook.push(await prisma.bOOK.findOne({
+            where : {book_num : logcount[i].book_num}
+        }));
+    }
+    
+    console.log("End mostSearchbook");
+    return bestBook;
 }
 
-// 회원별 검색했던 도서 목록
+// 해당 회원이 검색했던 도서 목록(1)
 export const searchedBook = async(user_id) =>{
+    console.log("Call searchedBook");
 
-    BOOK [books];
-    
     const searchedUser = await prisma.lOG.findMany({
         where: {user_ID : String(user_id)}
     });
+    const nonDuplicatedSearchedUser = removeDuplicates(searchedUser, "book_num")
     
-    for(var i in searchedUser) 
-    {
-        books.push(await prisma.bOOK.findMany({
-            where: {
-                book_num : searchedUser[i].book_num
-            }
+    var foundBooks = []
+    for(var i in nonDuplicatedSearchedUser){
+        foundBooks.push(await prisma.bOOK.findOne({
+            where : {book_num : nonDuplicatedSearchedUser[i].book_num}
         }));
     }
-    console.log({books});
     
-    return books;
+    console.log("End searchedBook");
+
+    return foundBooks;
+}
+//중복 데이터 제거
+function removeDuplicates(originalArray, prop) {
+    console.log(" → Call removeDuplicates");
+
+    var newArray = [];
+    var lookupObject  = {};
+
+    for(var i in originalArray) {
+       lookupObject[originalArray[i][prop]] = originalArray[i];
+    }
+    for(i in lookupObject) {
+        newArray.push(lookupObject[i]);
+    }
+
+    console.log(" ← End removeDuplicates");
+
+     return newArray;
 }
 
-// 로그 기록
+// 로그 기록(1)
 export const addLog = async(book_num,user_ID,user_age,book_category) => {
+    console.log("Call addLog");
+
     const newlog = await prisma.lOG.create({
             data:{
                 USER: {connect: {user_ID:user_ID}},
@@ -129,45 +205,80 @@ export const addLog = async(book_num,user_ID,user_age,book_category) => {
                 BOOK_BOOKToLOG_book_category: {connect :{book_category:book_category}},
                 BOOK_BOOKToLOG_book_num: { connect :{book_num:book_num}}
         }
-        
     });
 
-    console.log(newlog);
+    console.log("End addLog");
+
     return newlog;
 }
 
-//책 목록 모두 가져오기
+//책 목록 모두 가져오기(1)
 export const getBooklist = async() =>{
+    console.log("Call getBooklist");
+
     const booklist = await prisma.bOOK.findMany();
+
+    console.log("End getBooklist");
+
     return booklist;
 };
-//회원 목록 모두 가져오기
+//회원 목록 모두 가져오기(1)
 export const getAllUser = async() =>{
+    console.log("Call getAllUser");
+
     const alluserlist = await prisma.uSER.findMany();
+
+    console.log("End getAllUser");
+
     return alluserlist;
 };
-//회원의 책정보 가져오기
+//회원의 책정보 가져오기(1)
 export const getUserBook = async() =>{
+    console.log("Call getUserBook");
+
     const userbook = await prisma.user_BOOK.findMany();
+
+    console.log("End getUserBook");
+
     return userbook;
 };
-//모든 책 카테고리정보 가져오기
+//모든 책 카테고리정보 가져오기(1)
 export const getCategory = async() =>{
+    console.log("Call getCategory");
+
     const bookcategory = await prisma.cATEGORY.findMany();
+
+    console.log("End getCategory");
+
     return bookcategory;
 };
-// 모든 서점정보 가져오기
+// 모든 서점정보 가져오기(1)
 export const getLibrary = async() =>{
+    console.log("Call getLibrary");
+
     const librarylist = await prisma.lIBRARY.findMany();
+
+    console.log("End getLibrary");
+
     return librarylist;
 };
-// 모든 서점의 보유목록 가져오기
+// 모든 서점의 보유목록 가져오기(1)
 export const getLibraryBooks = async() =>{
+    console.log("Call getLibraryBooks");
+
     const librarybooks = await prisma.lIB_OWN_BOOK.findMany();
+
+    console.log("End getLibraryBooks");
+
     return librarybooks;
 };
-// 모든 로그정보 가져오기
+// 모든 로그정보 가져오기(1)
 export const getlog = async() =>{
+    console.log("Call getlog");
+
     const logdata = await prisma.lOG.findMany();
+
+    console.log("End getlog");
+
     return logdata;
 };
