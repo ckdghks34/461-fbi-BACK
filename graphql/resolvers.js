@@ -1,5 +1,5 @@
 import { getBooklist, getAllUser, getCategory,getLibrary,getLibraryBooks,getUserBook,getlog } from "./DB";
-import {loginUser,joinUser,addLog,mostSearchbook,searchedBook,mindbook,updateMindbook,getUserbyID,updateUserPW,getMindbook,getByBookNum} from "./DB";
+import {loginUser,joinUser,addLog,mostSearchbook,searchedBook,mindbook,updateMindbook,getUserbyID,updateUserPW,getMindbook,getByBookNum, findBookInShelf} from "./DB";
 
 const resolvers = {
         Query: {
@@ -16,7 +16,9 @@ const resolvers = {
                         searchedBook:(_,{id}) => searchedBook(id),
                         getUserbyID:(_,{id}) => getUserbyID(id),
                         getMindbook:(_,{id}) => getMindbook(id),
-                        getByBookNum:(_,{book_num}) =>getByBookNum(book_num)
+                        getByBookNum:(_,{book_num}) =>getByBookNum(book_num),
+                        findBookInShelf:(_,{book_num,user_ID}) => findBookInShelf(book_num,user_ID)
+                        
                 },
         Mutation:{
                         joinUser:(_,{user_ID,user_password,user_name,user_phone,user_age,user_gender}) => joinUser(user_ID,user_password,user_name,user_phone,user_age,user_gender),

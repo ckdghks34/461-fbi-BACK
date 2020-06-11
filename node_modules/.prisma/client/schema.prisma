@@ -70,9 +70,9 @@ model LOG {
 }
 
 model USER {
-  user_age      Int
+  user_age      Int?
   user_category Int?
-  user_gender   String
+  user_gender   String?
   user_ID       String      @id
   user_mindbook Int?
   user_name     String

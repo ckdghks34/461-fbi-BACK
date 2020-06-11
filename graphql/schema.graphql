@@ -54,6 +54,9 @@ type Log_Count{
         book_num:Int!
         count:Int
 }
+type findBookInShelf{
+        url:String!
+}
 type Query {
         getBooklist: [Book]
         getAllUser: [User]
@@ -69,6 +72,7 @@ type Query {
         getUserbyID:User!
         getMindbook:Book!
         getByBookNum(book_num:Int!):Book!
+        findBookInShelf(book_num:Int!,user_ID:String!): findBookInShelf
 }
 type Mutation {
         joinUser(user_ID:String!,user_password:String!,user_name:String!,user_phone:String!,user_age:Int!,user_gender:String!): User!

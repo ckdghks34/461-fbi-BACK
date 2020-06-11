@@ -3,17 +3,30 @@ import mariadb from "mariadb";
 import {dbConfig} from "../config/db_config";
 import {PrismaClient} from "@prisma/client";
 import { typeDefs } from "graphql-scalars";
+import {PythonShell} from  "python-shell";
 
+const prisma = new PrismaClient();
+const path = require('path');
+const fs = require('fs');
+
+const imgURL = "http://27.113.21.252:6400/img/result/";
 // MariaDB connect pool
 // http://github.com/sidorares/node-mysql2
+var options = {
 
-function uniqByKeepFirst(a, key) {
-    let seen = new Set();
-    return a.filter(item => {
-        let k = key(item);
-        return seen.has(k) ? false : seen.add(k);
-    });
-}
+    mode: 'text',
+  
+    pythonPath: '',
+  
+    pythonOptions: ['-u'],
+  
+    scriptPath: '',
+  
+    args: ['args_booksidpic', '/home/c2019-8950/python-test/bye/image_bookcase.jpg','target_link']
+  
+  };
+
+//Database connection config
 const pool = mariadb.createPool({
         host : dbConfig.host,
         user : dbConfig.user,
@@ -26,11 +39,13 @@ const pool = mariadb.createPool({
 });
 
 
-const prisma = new PrismaClient();
+
 
 //회원가입(1)
 export const joinUser = async(user_ID,user_password,user_name,user_phone,user_age,user_gender) =>{
+
     console.log("Call joinUser");
+
     const newuser = await prisma.uSER.create({
         data:{
             user_ID: user_ID,
@@ -47,14 +62,55 @@ export const joinUser = async(user_ID,user_password,user_name,user_phone,user_ag
     return newuser;
 }
 
+//파이썬 실행
+export const findBookInShelf = async(book_num,user_ID) => {
+    
+    var url = [{url}];
+
+    const foundBook = await prisma.bOOK.findMany(
+        {
+            where: {book_num : (book_num)}
+        }
+    )
+    
+    options.args[0] = foundBook[0].book_side_pic
+    console.log(options.args[0])
+    options.args[2] = "/home/c2019-8950/바탕화면/461_fbi/img/result/"+user_ID+".jpg"
+    console.log(options.args[2])
+    await runPython();
+    /*
+    PythonShell.run('/home/c2019-8950/python-test/bye/fbiexe.py', options, function (err, results) {
+
+    if (err) throw err;
+        console.log('results: %j', results);
+    });
+*/
+    url.url = imgURL+user_ID+".jpg";
+
+    return url;
+}
+
+//
+async function runPython(){
+    PythonShell.run('/home/c2019-8950/python-test/bye/fbiexe.py', options, function (err, results) {
+
+        if (err) throw err;
+            console.log('results: %j', results);
+        });
+}
+
 //로그인(1)
 export const loginUser = async(id,pw) =>{
+
     console.log("Call loginUser");
+
     const loginuser = await prisma.uSER.findMany(
         {
             where: {user_ID: String(id), user_password:String(pw)}
         }
     );
+
+    console.log(loginuser);
 
     console.log("End loginUser");
 
@@ -63,7 +119,9 @@ export const loginUser = async(id,pw) =>{
 
 //ID기준 회원정보 찾기(1)
 export const getUserbyID =async(id) =>{
+
     console.log("Call getUserbyID");
+    
     const getUser = await prisma.uSER.findOne({
         where:{user_ID:String(id)}
     });
@@ -206,9 +264,7 @@ export const addLog = async(book_num,user_ID,user_age,book_category) => {
                 BOOK_BOOKToLOG_book_num: { connect :{book_num:book_num}}
         }
     });
-
-    console.log("End addLog");
-
+    const prisma = new PrismaClient();
     return newlog;
 }
 
