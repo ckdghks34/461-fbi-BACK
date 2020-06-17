@@ -233,6 +233,14 @@ export const searchedBook = async(user_id) =>{
 
     return foundBooks;
 }
+
+// 
+/*export const DeleteSearchedBook = async(user_id) => {
+    console.log("Call DeleteSearchedBook")
+
+    const 
+}*/
+
 //중복 데이터 제거
 function removeDuplicates(originalArray, prop) {
     console.log(" → Call removeDuplicates");

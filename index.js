@@ -1,11 +1,14 @@
 import {GraphQLServer} from "graphql-yoga";
 import resolvers from "./graphql/resolvers";
 import {PrismaClient} from "@prisma/client";
+import morgan from 'morgan';
+import {logger,stream} from './config/morgan_config';
 
+const path = require('path');
 const express = require('express');
 const prisma = new PrismaClient();
 // const PORT = process.env.PORT || 5000;
-const morgan = require('morgan');
+
 
 //server options
 const options = {
@@ -17,12 +20,12 @@ const options = {
 //server 
 const server = new GraphQLServer({
 	typeDefs: ["graphql/schema.graphql"],
-	resolvers,
-	debug : false
+	resolvers
 });
+//console.log(path.join(__dirname,'Log','error'));
 
 server.express.use('/img',express.static('img'));
-server.express.use(morgan('short'));
+server.express.use(morgan('short',{"stream": stream}));
 
 async function main() {
 	// ... you will write your Prisma Client queries here
