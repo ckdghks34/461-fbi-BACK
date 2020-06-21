@@ -70,13 +70,13 @@ type Query {
         searchedBook(id:String!):[Book]
         mindbook(id:String!):[Book]
         getUserbyID:User!
-        getMindbook:Book!
+        getMindbook(id:String!):Book!
         getByBookNum(book_num:Int!):Book!
         findBookInShelf(book_num:Int!,user_ID:String!): findBookInShelf
 }
 type Mutation {
-        joinUser(user_ID:String!,user_password:String!,user_name:String!,user_phone:String!,user_age:Int!,user_gender:String!): User!
+        joinUser(user_ID:String!,user_password:String!,user_name:String!,user_phone:String!,user_age:Int!,user_gender:String!, user_category:Int!): User!
         addLog(book_num:Int!,user_ID:String!,user_age:Int!,book_category:Int!):[Log]!
-        updateMindbook(user_ID:String!,book_num:Int!) : User!
+        updateMindbook(user_ID:String!,book_num:Int!) : Book!
         updateUserPW(user_ID:String!,user_password:String!) : User!
 }

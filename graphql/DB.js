@@ -3,7 +3,8 @@ import mariadb from "mariadb";
 import {dbConfig} from "../config/db_config";
 import {PrismaClient} from "@prisma/client";
 import { typeDefs } from "graphql-scalars";
-import {PythonShell} from  "python-shell";
+import {PythonShell, PythonShellError} from  "python-shell";
+import { run } from "python-shell";
 
 const prisma = new PrismaClient();
 const path = require('path');
@@ -15,13 +16,9 @@ const imgURL = "http://27.113.21.252:6400/img/result/";
 var options = {
 
     mode: 'text',
-  
     pythonPath: '',
-  
     pythonOptions: ['-u'],
-  
     scriptPath: '',
-  
     args: ['args_booksidpic', '/home/c2019-8950/python-test/bye/image_bookcase.jpg','target_link']
   
   };
@@ -42,7 +39,7 @@ const pool = mariadb.createPool({
 
 
 //회원가입(1)
-export const joinUser = async(user_ID,user_password,user_name,user_phone,user_age,user_gender) =>{
+export const joinUser = async(user_ID,user_password,user_name,user_phone,user_age,user_gender, user_category) =>{
 
     console.log("Call joinUser");
 
@@ -53,7 +50,8 @@ export const joinUser = async(user_ID,user_password,user_name,user_phone,user_ag
             user_name:user_name,
             user_phone:user_phone,
             user_age:user_age,
-            user_gender:user_gender
+            user_gender:user_gender,
+            user_category:user_category
         }
     });
 
@@ -66,7 +64,6 @@ export const joinUser = async(user_ID,user_password,user_name,user_phone,user_ag
 export const findBookInShelf = async(book_num,user_ID) => {
     
     var url = [{url}];
-
     const foundBook = await prisma.bOOK.findMany(
         {
             where: {book_num : (book_num)}
@@ -77,26 +74,55 @@ export const findBookInShelf = async(book_num,user_ID) => {
     console.log(options.args[0])
     options.args[2] = "/home/c2019-8950/바탕화면/461_fbi/img/result/"+user_ID+".jpg"
     console.log(options.args[2])
-    await runPython();
+    
+    try{
+        await runPython().then((result)=>{
+            console.log(result);
+        })
+        
+        url.url = imgURL+user_ID+".jpg";
+        return url;
+
+    }catch(e){
+        console.log("findBookInShelf error : " + e);
+        
+    }
     /*
     PythonShell.run('/home/c2019-8950/python-test/bye/fbiexe.py', options, function (err, results) {
 
     if (err) throw err;
         console.log('results: %j', results);
     });
-*/
-    url.url = imgURL+user_ID+".jpg";
-
-    return url;
+*/    
+}
+const runPython = async() =>{
+    console.log("enter runPython");
+    const result = await Pythonrun();
+    
+    
+    return "success";
 }
 
 //
-async function runPython(){
-    PythonShell.run('/home/c2019-8950/python-test/bye/fbiexe.py', options, function (err, results) {
 
-        if (err) throw err;
+async function Pythonrun(){
+    var completed = 0;
+
+    PythonShell.run('/home/c2019-8950/python-test/bye/fbiexe.py', options, function (err, results) {
+            if (err)
+                throw err;
             console.log('results: %j', results);
+            
         });
+
+        return 0;
+
+    /*PythonShell.run('/home/c2019-8950/python-test/bye/fbiexe.py', options, function (err, results) {
+        if (err)
+            throw err;
+        console.log('results: %j', results);
+        return 0;
+    });*/
 }
 
 //로그인(1)
@@ -177,17 +203,21 @@ export const updateMindbook = async(user_id,book_num) =>{
             BOOK:{connect:{book_num : book_num}}}
     })
 
+    const newbook = await prisma.bOOK.findOne({
+        where: {book_num : book_num}
+    })
+
     console.log("End updateMindbook");
 
-    return newmindbook;
+    return newbook;
 }
 
 //책 번호로 책정보 찾기(1)
 export const getByBookNum = async(book_num) => {
     console.log("Call getByBookNum");
 
-    const getbook = await prisma.bOOK.findMany({
-        where : {book_num : String(book_num)}
+    const getbook = await prisma.bOOK.findOne({
+        where : {book_num : book_num}
     })
 
     console.log("End getByBookNum");
